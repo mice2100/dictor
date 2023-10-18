@@ -2,7 +2,6 @@
   <q-page class="column items-center q-pa-md">
     <NewsListVue @newsChanged="onNewsChanged"></NewsListVue>
     <AudioPlayer
-      active
       :uid="news.uid"
       :title="news.title"
       :audioUrl="news.audioUrl"

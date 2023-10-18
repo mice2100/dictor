@@ -156,10 +156,15 @@ onMounted(async () => {
     audio.playbackRate = parseFloat(playSpeed.value);
     readyState.value = true;
   });
+  audio.addEventListener('pause', () => {
+    paused.value = true;
+  });
+  audio.addEventListener('playing', () => {
+    paused.value = false;
+  });
 });
 
 watch(news, async (newOne, oldOne) => {
-  console.log(newOne);
   if (newOne.uid) {
     await playModel.initSegment(news.uid);
 
@@ -182,7 +187,6 @@ watch(playMode, async (newOne, oldOne) => {
     innerMin.value = 0;
     innerMax.value = 0;
     isplaying.value = false;
-    paused.value = true;
     return;
   }
 });
@@ -224,7 +228,6 @@ async function startOrStop() {
     innerMin.value = 0;
     innerMax.value = 0;
     isplaying.value = false;
-    paused.value = true;
     return;
   }
 
@@ -236,21 +239,21 @@ async function startOrStop() {
   currentTask = playModel.firstPlayTask();
   async function waitForEnd() {
     while (
-      audio.currentTime <
-      (currentTask.ptstart || 0) + currentTask.ptduration
+      audio.currentTime < (currentTask.ptstart || 0) + currentTask.ptduration &&
+      isplaying.value
     ) {
       await wait(20);
     }
   }
 
   isplaying.value = true;
-  while (currentTask.pttype != 'end' && isplaying.value) {
-    if (currentTask.pttype == 'play') {
+  while (currentTask.pttype !== 'end' && isplaying.value) {
+    if (currentTask.pttype === 'play') {
       syncCurrentTask();
       await audio.play();
       isplaying.value = true;
       await waitForEnd();
-    } else if (currentTask.pttype == 'pause') {
+    } else if (currentTask.pttype === 'pause') {
       currentText.value = '';
       audio.pause();
       await waitWithUI(currentTask.ptduration * 1000);
