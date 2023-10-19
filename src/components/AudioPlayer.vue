@@ -17,17 +17,6 @@
       inner-track-color="info"
     />
     <div class="q-ma-sm row inline full-width justify-between">
-      <q-btn-toggle
-        v-model="playMode"
-        no-caps
-        flat
-        toggle-color="primary"
-        size="lg"
-        :options="[
-          { label: 'Auto', value: 'auto' },
-          { label: 'Manual', value: 'manual' },
-        ]"
-      />
       <q-checkbox v-model="showText" label="Show Text" color="primary" />
       <div class="col" />
       <q-btn color="primary" flat no-caps :label="playSpeed" class="q-ml-lg">
@@ -66,7 +55,6 @@
         outline
         color="secondary"
         :icon="paused ? 'mdi-play' : 'mdi-pause'"
-        v-if="playMode === 'manual'"
         :disable="!readyState || !isplaying"
         class="col-3 q-ml-md"
         @click="pause"
@@ -75,7 +63,6 @@
         outline
         color="secondary"
         icon="mdi-skip-previous"
-        v-if="playMode === 'manual'"
         :disable="!readyState || !isplaying"
         class="col-3"
         @click="rewind('far')"
@@ -84,7 +71,6 @@
         outline
         color="secondary"
         icon="mdi-replay"
-        v-if="playMode === 'manual'"
         :disable="!readyState || !isplaying"
         class="col-3"
         @click="rewind('near')"
@@ -132,10 +118,8 @@ let audio: HTMLAudioElement;
 let playSpeed = ref('1 x');
 let isplaying = ref(false);
 let paused = ref(true);
-let playMode = ref('auto');
 let readyState = ref(false);
 const playModel = new PlayModel();
-let rewindPosNear = 0;
 
 let waitTimer = ref(5.0);
 let waitTimerMax = ref(5.0);
@@ -144,6 +128,7 @@ let showWait = ref(false);
 let currentTask: PlayTask;
 let currentText = ref('');
 let showText = ref(true);
+let skipping = ref('');
 
 onMounted(async () => {
   audio = new Audio();
@@ -179,23 +164,7 @@ watch(playSpeed, async (newOne, oldOne) => {
   audio.playbackRate = parseFloat(newOne);
 });
 
-watch(playMode, async (newOne, oldOne) => {
-  if (isplaying.value) {
-    audio.pause();
-    audio.currentTime = 0;
-    currentTime.value = 0;
-    innerMin.value = 0;
-    innerMax.value = 0;
-    isplaying.value = false;
-    return;
-  }
-});
-
 function handleSwipe({ evt, ...newInfo }) {
-  if (playMode.value === 'auto') {
-    return;
-  }
-
   switch (newInfo.direction) {
     case 'left':
       rewind('near');
@@ -212,7 +181,7 @@ async function waitWithUI(n: number) {
   showWait.value = true;
   for (let i = 0; i <= tmax; i++) {
     waitTimer.value = i;
-    if (!isplaying.value) {
+    if (!isplaying.value || skipping.value) {
       break;
     }
     await wait(100);
@@ -228,10 +197,11 @@ async function startOrStop() {
     innerMin.value = 0;
     innerMax.value = 0;
     isplaying.value = false;
+    skipping.value = '';
     return;
   }
 
-  playModel.initModel(playMode.value);
+  playModel.initModel('auto');
 
   isplaying.value = true;
   paused.value = false;
@@ -240,7 +210,8 @@ async function startOrStop() {
   async function waitForEnd() {
     while (
       audio.currentTime < (currentTask.ptstart || 0) + currentTask.ptduration &&
-      isplaying.value
+      isplaying.value &&
+      !skipping.value
     ) {
       await wait(20);
     }
@@ -258,12 +229,27 @@ async function startOrStop() {
       audio.pause();
       await waitWithUI(currentTask.ptduration * 1000);
     }
-    currentTask = playModel.nextPlayTask();
+
+    switch (skipping.value) {
+      case 'far':
+        currentTask = playModel.previousPlayTask();
+        break;
+      case 'near':
+        if (currentTask.pttype === 'play')
+          audio.currentTime = currentTask.ptstart || 0;
+        else currentTask = playModel.previousPlayTask();
+        break;
+      case '':
+        currentTask = playModel.nextPlayTask();
+        break;
+    }
+    skipping.value = '';
   }
   isplaying.value = false;
 }
 
 function pause() {
+  showWait.value = false;
   if (audio) {
     if (audio.paused) {
       audio.play();
@@ -279,24 +265,15 @@ function syncCurrentTask() {
   innerMin.value = currentTask.ptstart || 0;
   innerMax.value = innerMin.value + currentTask.ptduration;
   audio.currentTime = currentTask.ptstart || 0;
-  rewindPosNear = audio.currentTime;
   currentText.value = currentTask.pttext || '';
 
-  if (playMode.value === 'auto') {
-    audio.playbackRate = currentTask.ptspeed || 1.0;
-    playSpeed.value = `${audio.playbackRate} x`;
-  }
+  audio.playbackRate = currentTask.ptspeed || 1.0;
+  playSpeed.value = `${audio.playbackRate} x`;
 }
 
 function rewind(pos: string) {
-  if (pos === 'near') {
-    audio.currentTime = rewindPosNear;
-  } else if (pos === 'far') {
-    currentTask = playModel.previousPlayTask();
-    currentText.value = currentTask.pttext || '';
-
-    syncCurrentTask();
-  }
+  showWait.value = false;
+  skipping.value = pos;
 }
 
 const currentTimeFormatted = computed(() => {

@@ -86,7 +86,10 @@ export class PlayModel {
   previousPlayTask(): PlayTask {
     if (this.playTaskIndex > 0) {
       this.playTaskIndex--;
+      if (this.playTaskList[this.playTaskIndex].pttype === 'pause')
+        this.playTaskIndex--;
     }
+
     return this.playTaskList[this.playTaskIndex];
   }
 
@@ -115,6 +118,7 @@ export class PlayModel {
 
       for (const seg of this.segments) {
         this.addPlayTask('play', seg.duration, seg.start, 1, seg.text);
+        this.addPlayTask('pause', seg.duration * 0.5);
       }
       this.addPlayTask('end', 0);
     }
