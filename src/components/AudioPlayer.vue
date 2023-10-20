@@ -2,7 +2,7 @@
   <q-card
     class="q-pa-sm column full-width"
     flat
-    v-touch-swipe.mouse.left="handleSwipe"
+    v-touch-swipe.mouse.left.right="handleSwipe"
     style="height: 430px"
   >
     <h6 class="q-ma-sm">{{ currentTimeFormatted }}/{{ durationFormatted }}</h6>
@@ -17,6 +17,17 @@
       inner-track-color="info"
     />
     <div class="q-ma-sm row inline full-width justify-between">
+      <q-btn-toggle
+        v-model="hardness"
+        flat
+        no-caps
+        push
+        toggle-color="primary"
+        :options="[
+          { label: 'Easy', value: 'easy' },
+          { label: 'Hard', value: 'hard' },
+        ]"
+      />
       <q-checkbox v-model="showText" label="Show Text" color="primary" />
       <div class="col" />
       <q-btn color="primary" flat no-caps :label="playSpeed" class="q-ml-lg">
@@ -129,6 +140,7 @@ let currentTask: PlayTask;
 let currentText = ref('');
 let showText = ref(true);
 let skipping = ref('');
+let hardness = ref('easy');
 
 onMounted(async () => {
   audio = new Audio();
@@ -164,10 +176,17 @@ watch(playSpeed, async (newOne, oldOne) => {
   audio.playbackRate = parseFloat(newOne);
 });
 
+watch(hardness, async (newOne, oldOne) => {
+  startOrStop();
+});
+
 function handleSwipe({ evt, ...newInfo }) {
   switch (newInfo.direction) {
     case 'left':
       rewind('near');
+      break;
+    case 'right':
+      rewind('continue');
       break;
   }
 
@@ -201,7 +220,7 @@ async function startOrStop() {
     return;
   }
 
-  playModel.initModel('auto');
+  playModel.initModel(hardness.value);
 
   isplaying.value = true;
   paused.value = false;

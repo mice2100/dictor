@@ -58,6 +58,7 @@ export class PlayModel {
           lastEnd = s.end;
         }
       }
+      this.duration = lastEnd;
     }
   }
 
@@ -96,15 +97,14 @@ export class PlayModel {
   initModel(model: string): boolean {
     this.playTaskList = [];
     this.playTaskIndex = 0;
-    if (model === 'auto') {
+    if (model === 'hard') {
       this.addPlayTask('start', 0);
-      this.addPlayTask('play', this.duration, 0, 1);
 
       for (const seg of this.segments) {
         this.addPlayTask('play', seg.duration, seg.start, 1);
         this.addPlayTask('pause', seg.duration);
         this.addPlayTask('play', seg.duration, seg.start, 0.7);
-        this.addPlayTask('pause', seg.duration / 0.7);
+        this.addPlayTask('pause', seg.duration);
         this.addPlayTask('play', seg.duration, seg.start, 1, seg.text);
         this.addPlayTask('pause', seg.duration * 0.5);
         // this.addPlayTask('play', seg.duration, seg.start, 0.75);
@@ -112,14 +112,18 @@ export class PlayModel {
       }
       this.addPlayTask('play', this.duration, 0, 1);
       this.addPlayTask('end', 0);
-    } else if (model === 'manual') {
+    } else if (model === 'easy') {
       this.addPlayTask('start', 0);
-      // this.addPlayTask('play', this.duration, 0, 1);
 
       for (const seg of this.segments) {
-        this.addPlayTask('play', seg.duration, seg.start, 1, seg.text);
+        this.addPlayTask('play', seg.duration, seg.start, 0.7);
+        this.addPlayTask('pause', seg.duration * 0.5);
+        this.addPlayTask('play', seg.duration, seg.start, 0.7, seg.text);
+        this.addPlayTask('pause', seg.duration);
+        this.addPlayTask('play', seg.duration, seg.start, 1);
         this.addPlayTask('pause', seg.duration * 0.5);
       }
+      this.addPlayTask('play', this.duration, 0, 1);
       this.addPlayTask('end', 0);
     }
     // console.log(this.playTaskList, model);
