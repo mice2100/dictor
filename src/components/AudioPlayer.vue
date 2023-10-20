@@ -239,7 +239,7 @@ async function startOrStop() {
           audio.currentTime = currentTask.ptstart || 0;
         else currentTask = playModel.previousPlayTask();
         break;
-      case '':
+      default:
         currentTask = playModel.nextPlayTask();
         break;
     }
@@ -248,12 +248,13 @@ async function startOrStop() {
   isplaying.value = false;
 }
 
-function pause() {
+async function pause() {
   showWait.value = false;
   if (audio) {
     if (audio.paused) {
-      audio.play();
       paused.value = false;
+      if (currentTask.pttype === 'play') await audio.play();
+      else skipping.value = 'continue';
     } else {
       audio.pause();
       paused.value = true;
