@@ -77,17 +77,19 @@ export class PlayModel {
     return this.playTaskList[this.playTaskIndex];
   }
 
-  nextPlayTask(): PlayTask {
+  nextPlayTask(skipPause = false): PlayTask {
     if (this.playTaskIndex < this.playTaskList.length - 1) {
       this.playTaskIndex += 1;
     }
+    if (this.playTaskList[this.playTaskIndex].pttype === 'pause' && skipPause)
+      this.playTaskIndex += 1;
     return this.playTaskList[this.playTaskIndex];
   }
 
-  previousPlayTask(): PlayTask {
+  previousPlayTask(skipPause = true): PlayTask {
     if (this.playTaskIndex > 0) {
       this.playTaskIndex--;
-      if (this.playTaskList[this.playTaskIndex].pttype === 'pause')
+      if (this.playTaskList[this.playTaskIndex].pttype === 'pause' && skipPause)
         this.playTaskIndex--;
     }
 

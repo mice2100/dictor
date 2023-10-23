@@ -186,7 +186,7 @@ function handleSwipe({ evt, ...newInfo }) {
       rewind('near');
       break;
     case 'right':
-      rewind('continue');
+      rewind('nextplay');
       break;
   }
 
@@ -258,8 +258,11 @@ async function startOrStop() {
           audio.currentTime = currentTask.ptstart || 0;
         else currentTask = playModel.previousPlayTask();
         break;
+      case 'nextplay':
+        currentTask = playModel.nextPlayTask(true);
+        break;
       default:
-        currentTask = playModel.nextPlayTask();
+        currentTask = playModel.nextPlayTask(false);
         break;
     }
     skipping.value = '';
